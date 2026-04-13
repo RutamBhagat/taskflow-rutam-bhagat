@@ -1,0 +1,3 @@
+{
+  "extends": "@taskflow-elysia/config/tsconfig.base.json"
+}
