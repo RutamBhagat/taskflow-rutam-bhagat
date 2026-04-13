@@ -1,8 +1,12 @@
-import { db, desc, eq, inArray, or, and, schema } from "@taskflow-elysia/db";
+import { db, desc, eq, inArray, or, and, schema, sql } from "@taskflow-elysia/db";
 import { Elysia, t } from "elysia";
 import { app } from "../../app";
 import { createJwtPlugin, getCurrentUserId } from "../auth/auth-utils";
 import { getPagination, paginationQueryFields } from "../../shared/pagination";
+
+const projectIdParams = t.Object({
+  id: t.String({ format: "uuid" }),
+});
 
 const projectRoutes = new Elysia({ prefix: "/projects" })
   .use(createJwtPlugin())
@@ -136,9 +140,7 @@ const projectRoutes = new Elysia({ prefix: "/projects" })
       };
     },
     {
-      params: t.Object({
-        id: t.String(),
-      }),
+      params: projectIdParams,
     },
   )
   .get(
@@ -229,15 +231,13 @@ const projectRoutes = new Elysia({ prefix: "/projects" })
       };
     },
     {
-      params: t.Object({
-        id: t.String(),
-      }),
+      params: projectIdParams,
       query: t.Object({
         ...paginationQueryFields,
         status: t.Optional(
           t.Union([t.Literal("todo"), t.Literal("in_progress"), t.Literal("done")]),
         ),
-        assignee: t.Optional(t.String({ minLength: 1 })),
+        assignee: t.Optional(t.String({ format: "uuid" })),
       }),
     },
   )
@@ -339,9 +339,7 @@ const projectRoutes = new Elysia({ prefix: "/projects" })
       };
     },
     {
-      params: t.Object({
-        id: t.String(),
-      }),
+      params: projectIdParams,
       body: t.Object({
         title: t.String({ minLength: 1 }),
         description: t.Optional(t.String()),
@@ -439,9 +437,7 @@ const projectRoutes = new Elysia({ prefix: "/projects" })
       };
     },
     {
-      params: t.Object({
-        id: t.String(),
-      }),
+      params: projectIdParams,
       body: t.Object({
         name: t.Optional(t.String()),
         description: t.Optional(t.String()),
@@ -498,9 +494,92 @@ const projectRoutes = new Elysia({ prefix: "/projects" })
       return;
     },
     {
-      params: t.Object({
-        id: t.String(),
-      }),
+      params: projectIdParams,
+    },
+  )
+  .get(
+    "/:id/stats",
+    async ({ headers, jwt, params, set }) => {
+      const currentUserId = await getCurrentUserId(jwt, headers.authorization);
+
+      if (!currentUserId) {
+        set.status = 401;
+
+        return { error: "unauthorized" };
+      }
+
+      const [project] = await db
+        .select({
+          id: schema.projects.id,
+          ownerId: schema.projects.ownerId,
+        })
+        .from(schema.projects)
+        .where(eq(schema.projects.id, params.id))
+        .limit(1);
+
+      if (!project) {
+        set.status = 404;
+
+        return { error: "not found" };
+      }
+
+      const [assignedTask] = await db
+        .select({ id: schema.tasks.id })
+        .from(schema.tasks)
+        .where(
+          and(eq(schema.tasks.projectId, params.id), eq(schema.tasks.assigneeId, currentUserId)),
+        )
+        .limit(1);
+
+      if (project.ownerId !== currentUserId && !assignedTask) {
+        set.status = 403;
+
+        return { error: "forbidden" };
+      }
+
+      const taskCount = sql<number>`cast(count(${schema.tasks.id}) as int)`.mapWith(Number);
+
+      const statusRows = await db
+        .select({
+          status: schema.tasks.status,
+          taskCount,
+        })
+        .from(schema.tasks)
+        .where(eq(schema.tasks.projectId, params.id))
+        .groupBy(schema.tasks.status)
+        .orderBy(schema.tasks.status);
+
+      const statusCounts: Record<"todo" | "in_progress" | "done", number> = {
+        todo: 0,
+        in_progress: 0,
+        done: 0,
+      };
+
+      for (const row of statusRows) {
+        statusCounts[row.status] = row.taskCount;
+      }
+
+      const assigneeRows = await db
+        .select({
+          assigneeId: schema.tasks.assigneeId,
+          taskCount,
+        })
+        .from(schema.tasks)
+        .where(eq(schema.tasks.projectId, params.id))
+        .groupBy(schema.tasks.assigneeId)
+        .orderBy(desc(taskCount), schema.tasks.assigneeId);
+
+      return {
+        project_id: project.id,
+        status_counts: statusCounts,
+        assignee_counts: assigneeRows.map((row) => ({
+          assignee_id: row.assigneeId,
+          task_count: row.taskCount,
+        })),
+      };
+    },
+    {
+      params: projectIdParams,
     },
   )
   .post(

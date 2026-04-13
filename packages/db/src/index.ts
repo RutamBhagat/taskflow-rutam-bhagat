@@ -9,4 +9,4 @@ export function createDb() {
 }
 
 export const db = createDb();
-export { desc, eq, inArray, or, and } from "drizzle-orm";
+export { desc, eq, inArray, or, and, sql } from "drizzle-orm";
