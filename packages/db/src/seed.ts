@@ -1,8 +1,8 @@
-import { eq, schema } from "./index";
+import { eq, or, schema } from "./index";
 import { db } from "./index";
 
-const seededUserEmail = "seed@example.com";
-const seededUserPassword = "Password123!";
+const seededUserEmail = "test@example.com";
+const seededUserPassword = "password123";
 const seededUserId = "11111111-1111-1111-1111-111111111111";
 const seededProjectId = "22222222-2222-2222-2222-222222222222";
 
@@ -25,71 +25,78 @@ const seededTasks = [
 ];
 
 export async function seedDatabase() {
-  const [existingUser] = await db
+  const password = await Bun.password.hash(seededUserPassword, {
+    algorithm: "bcrypt",
+    cost: 12,
+  });
+
+  const [matchedUser] = await db
     .select({
       id: schema.users.id,
     })
     .from(schema.users)
-    .where(eq(schema.users.email, seededUserEmail))
+    .where(
+      or(
+        eq(schema.users.email, seededUserEmail),
+        eq(schema.users.id, seededUserId),
+      ),
+    )
     .limit(1);
 
-  const userId = existingUser?.id ?? seededUserId;
-
-  if (!existingUser) {
-    const password = await Bun.password.hash(seededUserPassword, {
-      algorithm: "bcrypt",
-      cost: 12,
-    });
-
-    await db.insert(schema.users).values({
-      id: seededUserId,
-      name: "Seed User",
-      email: seededUserEmail,
-      password,
-    });
+  if (!matchedUser) {
+    await db
+      .insert(schema.users)
+      .values({
+        id: seededUserId,
+        name: "Seed User",
+        email: seededUserEmail,
+        password,
+      })
+      .onConflictDoNothing();
   }
 
-  const [existingProject] = await db
+  const [seededUser] = await db
     .select({
-      id: schema.projects.id,
+      id: schema.users.id,
     })
-    .from(schema.projects)
-    .where(eq(schema.projects.id, seededProjectId))
+    .from(schema.users)
+    .where(
+      or(
+        eq(schema.users.email, seededUserEmail),
+        eq(schema.users.id, seededUserId),
+      ),
+    )
     .limit(1);
 
-  if (!existingProject) {
-    await db.insert(schema.projects).values({
+  if (!seededUser) {
+    throw new Error("Seed user was not found after seeding");
+  }
+
+  await db
+    .insert(schema.projects)
+    .values({
       id: seededProjectId,
       name: "Seed Project",
       description: "Project created during bootstrap seeding",
-      ownerId: userId,
-    });
-  }
+      ownerId: seededUser.id,
+    })
+    .onConflictDoNothing();
 
   for (const seededTask of seededTasks) {
-    const [existingTask] = await db
-      .select({
-        id: schema.tasks.id,
+    await db
+      .insert(schema.tasks)
+      .values({
+        id: seededTask.id,
+        title: seededTask.title,
+        description: `Seed data for ${seededTask.status}`,
+        status: seededTask.status,
+        priority: "medium",
+        projectId: seededProjectId,
+        creatorId: seededUser.id,
+        assigneeId: seededUser.id,
+        dueDate: null,
       })
-      .from(schema.tasks)
-      .where(eq(schema.tasks.id, seededTask.id))
-      .limit(1);
-
-    if (existingTask) {
-      continue;
-    }
-
-    await db.insert(schema.tasks).values({
-      id: seededTask.id,
-      title: seededTask.title,
-      description: `Seed data for ${seededTask.status}`,
-      status: seededTask.status,
-      priority: "medium",
-      projectId: seededProjectId,
-      creatorId: userId,
-      assigneeId: userId,
-      dueDate: null,
-    });
+      .onConflictDoNothing();
   }
 }
 
