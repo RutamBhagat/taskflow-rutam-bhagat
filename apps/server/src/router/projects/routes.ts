@@ -211,6 +211,119 @@ const projectRoutes = new Elysia({ prefix: "/projects" })
       }),
     },
   )
+  .post(
+    "/:id/tasks",
+    async ({ body, headers, jwt, params, set }) => {
+      const currentUserId = await getCurrentUserId(jwt, headers.authorization);
+
+      if (!currentUserId) {
+        set.status = 401;
+
+        return { error: "unauthorized" };
+      }
+
+      const [project] = await db
+        .select({
+          id: schema.projects.id,
+          ownerId: schema.projects.ownerId,
+        })
+        .from(schema.projects)
+        .where(eq(schema.projects.id, params.id))
+        .limit(1);
+
+      if (!project) {
+        set.status = 404;
+
+        return { error: "not found" };
+      }
+
+      if (project.ownerId !== currentUserId) {
+        set.status = 403;
+
+        return { error: "forbidden" };
+      }
+
+      if (body.assignee_id !== undefined) {
+        const [assignee] = await db
+          .select({ id: schema.users.id })
+          .from(schema.users)
+          .where(eq(schema.users.id, body.assignee_id))
+          .limit(1);
+
+        if (!assignee) {
+          set.status = 400;
+
+          return {
+            error: "validation failed",
+            fields: {
+              assignee_id: "does not exist",
+            },
+          };
+        }
+      }
+
+      const [task] = await db
+        .insert(schema.tasks)
+        .values({
+          title: body.title,
+          description: body.description,
+          status: body.status,
+          priority: body.priority,
+          projectId: params.id,
+          creatorId: currentUserId,
+          assigneeId: body.assignee_id,
+          dueDate: body.due_date ? new Date(body.due_date) : undefined,
+        })
+        .returning({
+          id: schema.tasks.id,
+          title: schema.tasks.title,
+          description: schema.tasks.description,
+          status: schema.tasks.status,
+          priority: schema.tasks.priority,
+          projectId: schema.tasks.projectId,
+          assigneeId: schema.tasks.assigneeId,
+          dueDate: schema.tasks.dueDate,
+          createdAt: schema.tasks.createdAt,
+          updatedAt: schema.tasks.updatedAt,
+        });
+
+      if (!task) {
+        set.status = 500;
+
+        return { error: "task not created" };
+      }
+
+      set.status = 201;
+
+      return {
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
+        project_id: task.projectId,
+        assignee_id: task.assigneeId,
+        due_date: task.dueDate,
+        created_at: task.createdAt,
+        updated_at: task.updatedAt,
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+      }),
+      body: t.Object({
+        title: t.String({ minLength: 1 }),
+        description: t.Optional(t.String()),
+        status: t.Optional(
+          t.Union([t.Literal("todo"), t.Literal("in_progress"), t.Literal("done")]),
+        ),
+        priority: t.Optional(t.Union([t.Literal("low"), t.Literal("medium"), t.Literal("high")])),
+        assignee_id: t.Optional(t.String({ format: "uuid" })),
+        due_date: t.Optional(t.String({ format: "date" })),
+      }),
+    },
+  )
   .patch(
     "/:id",
     async ({ body, headers, jwt, params, set }) => {
