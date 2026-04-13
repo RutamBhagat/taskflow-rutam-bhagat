@@ -306,7 +306,7 @@ const projectRoutes = new Elysia({ prefix: "/projects" })
         due_date: task.dueDate,
         created_at: task.createdAt,
         updated_at: task.updatedAt,
-      }
+      };
     },
     {
       params: t.Object({
