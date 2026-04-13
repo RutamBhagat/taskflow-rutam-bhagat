@@ -1,5 +1,6 @@
 import "./router/auth/routes";
 import "./router/projects/routes";
+import "./router/tasks/routes";
 
 import { app } from "./app";
 import { logger } from "./shared/logger";
