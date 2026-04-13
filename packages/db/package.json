@@ -13,13 +13,19 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate:up": "drizzle-migrations up",
+    "db:migrate:down": "drizzle-migrations down",
+    "db:migrate:status": "drizzle-migrations status",
+    "db:migrate:fresh": "drizzle-migrations fresh",
+    "db:migrate:refresh": "drizzle-migrations refresh"
   },
   "dependencies": {
+    "@drepkovsky/drizzle-migrations": "^0.6.0",
     "@taskflow-elysia/env": "workspace:*",
     "dotenv": "catalog:",
     "drizzle-orm": "^0.45.1",
     "pg": "^8.17.1",
+    "postgres": "^3.4.0",
     "zod": "catalog:"
   },
   "devDependencies": {
