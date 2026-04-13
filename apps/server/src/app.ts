@@ -3,7 +3,8 @@ import { db } from "@taskflow-elysia/db";
 import { env } from "@taskflow-elysia/env/server";
 import { openapi } from "@elysiajs/openapi";
 import { Elysia } from "elysia";
-import { getValidationFields, isForbidden, isNotFound, isUnauthorized, logger } from "./lib";
+import { getValidationFields, isForbidden, isNotFound, isUnauthorized } from "./shared/http";
+import { logger } from "./shared/logger";
 
 export const app = new Elysia()
   .use(openapi())

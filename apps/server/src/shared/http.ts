@@ -1,6 +1,3 @@
-import { env } from "@taskflow-elysia/env/server";
-import pino from "pino";
-
 export function getValidationFields(error: { all: Array<{ path?: string; message: string }> }) {
   const fields: Record<string, string> = {};
 
@@ -28,7 +25,3 @@ export function isForbidden(code: string | number) {
 export function isNotFound(code: string | number) {
   return code === 404 || code === "NOT_FOUND";
 }
-
-export const logger = pino({
-  level: env.NODE_ENV === "development" ? "debug" : "info",
-});

@@ -2,7 +2,7 @@ import { jwt } from "@elysiajs/jwt";
 import { db, eq, schema } from "@taskflow-elysia/db";
 import { env } from "@taskflow-elysia/env/server";
 import { Elysia, t } from "elysia";
-import { app } from "./app";
+import { app } from "../../app";
 import { jwtSchema } from "./auth-utils";
 
 function isUniqueViolation(error: unknown) {

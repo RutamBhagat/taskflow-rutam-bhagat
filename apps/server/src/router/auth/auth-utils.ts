@@ -8,7 +8,7 @@ export const jwtSchema = t.Object({
   exp: t.Number(),
 });
 
-export function createJwtPlugin() {
+export function createJwtPlugin(): ReturnType<typeof jwt> {
   return jwt({
     name: "jwt",
     secret: env.JWT_SECRET,

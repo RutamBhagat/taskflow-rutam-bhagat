@@ -1,12 +1,10 @@
 import { db, desc, eq, inArray, or, schema } from "@taskflow-elysia/db";
 import { Elysia } from "elysia";
-import { app } from "./app";
-import { createJwtPlugin, getCurrentUserId } from "./auth-utils";
+import { app } from "../../app";
+import { createJwtPlugin, getCurrentUserId } from "../auth/auth-utils";
 
 const projectRoutes = new Elysia({ prefix: "/projects" })
-  .use(
-    createJwtPlugin(),
-  )
+  .use(createJwtPlugin())
   .get("/", async ({ headers, jwt, set }) => {
     const currentUserId = await getCurrentUserId(jwt, headers.authorization);
 
