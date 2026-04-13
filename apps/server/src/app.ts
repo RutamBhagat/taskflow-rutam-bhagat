@@ -62,10 +62,10 @@ export const app = new Elysia()
     try {
       await db.execute("select 1");
 
-      return { ok: true };
+      return { status: "ok" };
     } catch {
       set.status = 503;
 
-      return { ok: false };
+      return { status: "error" };
     }
   });
