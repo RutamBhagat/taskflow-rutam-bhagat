@@ -1,4 +1,5 @@
 import "./auth";
+import "./projects";
 
 import { app } from "./app";
 import { logger } from "./lib";

@@ -3,6 +3,7 @@ import { db, eq, schema } from "@taskflow-elysia/db";
 import { env } from "@taskflow-elysia/env/server";
 import { Elysia, t } from "elysia";
 import { app } from "./app";
+import { jwtSchema } from "./auth-utils";
 
 function isUniqueViolation(error: unknown) {
   const code =
@@ -25,6 +26,7 @@ const authRoutes = new Elysia({ prefix: "/auth" })
     jwt({
       name: "jwt",
       secret: env.JWT_SECRET,
+      schema: jwtSchema,
     }),
   )
   .post(

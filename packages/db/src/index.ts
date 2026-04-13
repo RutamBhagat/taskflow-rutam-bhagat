@@ -2,7 +2,6 @@ import { env } from "@taskflow-elysia/env/server";
 import { drizzle } from "drizzle-orm/node-postgres";
 
 import * as schema from "./schema";
-export { eq } from "drizzle-orm";
 export { schema };
 
 export function createDb() {
@@ -10,3 +9,4 @@ export function createDb() {
 }
 
 export const db = createDb();
+export { desc, eq, inArray, or } from "drizzle-orm";
