@@ -1,8 +1,11 @@
 import dotenv from "dotenv";
 import { createEnv } from "@t3-oss/env-core";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 
-const rootEnvPath = Bun.resolveSync("../../../.env", import.meta.dir);
+const currentDir = dirname(fileURLToPath(import.meta.url));
+const rootEnvPath = resolve(currentDir, "../../../.env");
 
 dotenv.config({ path: rootEnvPath });
 

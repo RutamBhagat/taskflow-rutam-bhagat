@@ -2,8 +2,11 @@ import dotenv from "dotenv";
 import { type DrizzleMigrationsConfig } from "@drepkovsky/drizzle-migrations";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const rootEnvPath = Bun.resolveSync("../../.env", import.meta.dir);
+const currentDir = dirname(fileURLToPath(import.meta.url));
+const rootEnvPath = resolve(currentDir, "../../.env");
 
 dotenv.config({ path: rootEnvPath });
 
